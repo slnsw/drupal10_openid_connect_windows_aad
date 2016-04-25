@@ -68,7 +68,9 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
       $userinfo = json_decode($result->data, TRUE);
     }
     else {
-      drupal_set_message('<pre>' . print_r($result, 1) . '</pre>', 'error');
+      drupal_set_message(t('The UserInfo cannot be retrieved. Please check if a proper url was used.'), 'error');
+
+      return FALSE;
     }
 
     // If email is not there the user will not be created by Drupal, so we
