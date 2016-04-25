@@ -76,6 +76,8 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
     // If email is not there the user will not be created by Drupal, so we
     // add the username as email instead, so Drupal will create it anyway.
     if (!isset($userinfo['email'])) {
+      drupal_set_message(t('Email address not found in UserInfo. Used username instead, please check.'), 'warning');
+
       $userinfo['email'] = $userinfo['upn'];
     }
 
