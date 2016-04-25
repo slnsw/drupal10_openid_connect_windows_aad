@@ -54,14 +54,22 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
    */
   public function retrieveUserInfo($access_token) {
     $endpoints = $this->getEndpoints();
-    // Windows Azure requires a separate request for userinfo, containing access
-    // token in the header.
-    $authorization = 'Authorization: Bearer ' . $access_token;
-    $ch = curl_init($endpoints['userinfo']);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', $authorization));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    $result = curl_exec($ch);
-    $userinfo = json_decode($result, TRUE);
+    $url = $endpoints['userinfo'];
+    $options = array(
+      'method' => 'GET',
+      'headers' => array(
+        'Content-Type' => 'application/json',
+        'Authorization' => 'Bearer ' . $access_token,
+      ),
+    );
+    $result = drupal_http_request($url, $options);
+
+    if (in_array($result->code, array(200, 304))) {
+      $userinfo = json_decode($result->data, TRUE);
+    }
+    else {
+      drupal_set_message('<pre>' . print_r($result, 1) . '</pre>', 'error');
+    }
 
     // If email is not there the user will not be created by Drupal, so we
     // add the username as email instead, so Drupal will create it anyway.
