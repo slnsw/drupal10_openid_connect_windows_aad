@@ -1,9 +1,5 @@
 name = OpenID Connect Windows Azure Active Directory
 description = "A CTools plugin that adds a Windows Azure AD client to OpenID Connect."
-package = Finalist
-
-version = 7.x-1.0
-project = openid_connect_windows_aad
 
 dependencies[] = ctools
 dependencies[] = openid_connect

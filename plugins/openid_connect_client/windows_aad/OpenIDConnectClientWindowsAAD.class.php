@@ -6,7 +6,10 @@
  * OpenID Connect client for Windows Azure AD.
  */
 
-class OpenIDConnectClientWindowsAAD extends OpenIDConnectClientBase {
+/**
+ * Class OpenidConnectWindowsAadClient adds the client to OpenID Connect.
+ */
+class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
 
   /**
    * Overrides OpenIDConnectClientBase::settingsForm().

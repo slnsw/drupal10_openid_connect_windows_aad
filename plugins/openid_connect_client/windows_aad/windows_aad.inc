@@ -10,5 +10,5 @@
 
 $plugin = array(
   'title' => t('Windows Azure AD'),
-  'class' => 'OpenIDConnectClientWindowsAAD',
+  'class' => 'OpenidConnectWindowsAadClient',
 );
