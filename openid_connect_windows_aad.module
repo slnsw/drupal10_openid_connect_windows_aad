@@ -1,12 +1,9 @@
 <?php
 
 /**
- *  @file
- *
+ * @file
  * CTools plugin for OpenID Connect, Windows Azure AD.
- *
  */
-
 
 /**
  * Implements openid_connect_windows_aad_ctools_plugin_directory().
