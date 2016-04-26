@@ -1,5 +1,5 @@
-OPEN ID CONNECT WINDOWS AAD
-===========================
+OPENID CONNECT WINDOWS AAD
+==========================
 
 This small module is a CTools plugin for the great module OpenID Connect and
 focuses on integration with Windows Azure AD.
