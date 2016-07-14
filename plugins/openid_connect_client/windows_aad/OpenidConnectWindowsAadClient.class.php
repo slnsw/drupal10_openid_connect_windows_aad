@@ -98,6 +98,8 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
 
   /**
    * Overrides OpenIDConnectClientBase::retrieveUserInfo().
+   *
+   * @todo -- map the Graph attribute names on userinfo, as they are different.
    */
   public function retrieveUserInfo($access_token) {
     // Determine if we use Openid Userinfo or Graph API.
@@ -141,6 +143,12 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
 
       $userinfo['email'] = $userinfo[$upn];
     }
+    // Graph returns displayName instead of name.
+    // @todo: better solution for different attribute names.
+    if (!isset($userinfo['name'])) {
+      $userinfo['name'] = $userinfo['displayName'];
+    }
+
     return $userinfo;
   }
 
