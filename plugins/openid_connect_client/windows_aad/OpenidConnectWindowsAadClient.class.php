@@ -39,6 +39,12 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
       '#default_value' => $this->getSetting('userinfo_graph_api_wa'),
       '#description' => t('This option will omit the Userinfo endpoint and will use the Graph API ro retrieve the userinfo.'),
     );
+    $form['hide_email_address_warning'] = array(
+      '#title' => t('Hide missing email address warning'),
+      '#type' => 'checkbox',
+      '#default_value' => $this->getSetting('hide_email_address_warning'),
+      '#description' => t('By default, when email address is not found, a message will appear on the screen. This option hides that message (as it might be confusing for end users).'),
+    );
 
     return $form;
   }
@@ -139,7 +145,16 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
     // If email is not there the user will not be created by Drupal, so we
     // add the principal name as email instead, so Drupal will create it anyway.
     if (!isset($userinfo['email'])) {
-      drupal_set_message(t('Email address not found in UserInfo. Used username instead, please check.'), 'warning');
+      // Show message to user.
+      if ($this->getSetting('hide_email_address_warning') <> 1) {
+        drupal_set_message(t('Email address not found in UserInfo. Used username instead, please check this in your profile.'), 'warning');
+      }
+      // Write watchdog warning.
+      $type = 'warning';
+      $message = 'Email address of user @user not found in UserInfo. Used username instead, please check.';
+      $variables = array('@user' => $userinfo[$upn]);
+
+      watchdog($type, $message, $variables);
 
       $userinfo['email'] = $userinfo[$upn];
     }
