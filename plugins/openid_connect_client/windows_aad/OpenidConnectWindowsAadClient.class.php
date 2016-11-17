@@ -45,10 +45,10 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
       '#default_value' => $this->getSetting('userinfo_graph_api_use_other_mails'),
       '#description' => t('Find the first occurrence of an email address in the Graph otherMails property and use this as email address.'),
     );
-    $form['userinfo_graph_api_update_email'] = array(
+    $form['userinfo_update_email'] = array(
       '#title' => t('Update email address in user profile'),
       '#type' => 'checkbox',
-      '#default_value' => $this->getSetting('userinfo_graph_api_update_email'),
+      '#default_value' => $this->getSetting('userinfo_update_email'),
       '#description' => t('If email address has been changed for existing user, save the new value to the user profile.'),
     );
     $form['hide_email_address_warning'] = array(
@@ -124,21 +124,23 @@ class OpenidConnectWindowsAadClient extends OpenIDConnectClientBase {
     switch ($this->getSetting('userinfo_graph_api_wa')) {
       case 1:
         $userinfo = $this->buildUserinfo($access_token, 'https://graph.windows.net/me?api-version=1.6', 'userPrincipalName', 'displayName');
-
-        // Check to see if we have changed email data, openid_connect doesn't
-        // give us the possibility to add a mapping for it, so we do the change
-        // now, first checking if this is wanted by checking the setting for it.
-        $user = user_load_by_name($userinfo['name']);
-        if ($user && ($user->mail <> $userinfo['email'])) {
-          $edit = array('mail' => $userinfo['email']);
-          user_save($user, $edit);
-        }
         break;
 
       default:
         $endpoints = $this->getEndpoints();
         $userinfo = $this->buildUserinfo($access_token, $endpoints['userinfo'], 'upn', 'name');
         break;
+    }
+
+    // Check to see if we have changed email data, openid_connect doesn't
+    // give us the possibility to add a mapping for it, so we do the change
+    // now, first checking if this is wanted by checking the setting for it.
+    if ($this->getSetting('userinfo_update_email') == 1) {
+      $user = user_load_by_name($userinfo['name']);
+      if ($user && ($user->mail <> $userinfo['email'])) {
+        $edit = array('mail' => $userinfo['email']);
+        user_save($user, $edit);
+      }
     }
 
     return $userinfo;
