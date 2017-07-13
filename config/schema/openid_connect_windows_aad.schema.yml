@@ -1,0 +1,26 @@
+# Schema for the configuration files of the OpenID Connect module.
+openid_connect_windows_aad.settings.window_aad:
+  type: config_object
+  label: 'OpenID Connect Window Aad settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enable client'
+    settings:
+      type: mapping
+      mapping:
+        client_id:
+          type: string
+          label: 'Client ID'
+        client_secret:
+          type: string
+          label: 'Client secret'
+        authorization_endpoint_wa:
+          type: string
+          label: 'Authorization endpoint'
+        token_endpoint_wa:
+          type: string
+          label: 'Token endpoint'
+        userinfo_endpoint_wa:
+          type: string
+          label: 'Userinfo endpoint'
