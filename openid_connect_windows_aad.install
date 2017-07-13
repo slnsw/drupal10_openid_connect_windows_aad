@@ -1,7 +1,7 @@
 <?php
 
 /**
- * hook_uninstall(). To remove configuration.
+ * Implements hook_uninstall().
  */
 function openid_connect_windows_aad_uninstall() {
   // Remove configuration.

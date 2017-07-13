@@ -148,16 +148,6 @@ class WindowsAad extends OpenIDConnectClientBase {
    * @return array|bool
    *   A result array or false.
    */
-  /**
-   * Implements OpenIDConnectClientInterface::retrieveUserInfo().
-   *
-   * @param string $access_token
-   *   An access token string.
-   *
-   * @return array|bool
-   *   A result array or false.
-   */
-
   public function retrieveUserInfo($access_token) {
 
     // Determine if we use Graph API or default O365 Userinfo as this will
