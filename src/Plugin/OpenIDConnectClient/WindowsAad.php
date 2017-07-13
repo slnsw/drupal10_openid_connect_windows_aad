@@ -6,7 +6,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\openid_connect\Plugin\OpenIDConnectClientBase;
 use Drupal\Core\Url;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\ClientInterface;
 
 /**
  * Generic OpenID Connect client.
@@ -26,45 +25,45 @@ class WindowsAad extends OpenIDConnectClientBase {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
-    $form['authorization_endpoint_wa'] = array(
-      '#title' => t('Authorization endpoint'),
+    $form['authorization_endpoint_wa'] = [
+      '#title' => $this->t('Authorization endpoint'),
       '#type' => 'textfield',
       '#default_value' => $this->configuration['authorization_endpoint_wa'],
-    );
-    $form['token_endpoint_wa'] = array(
-      '#title' => t('Token endpoint'),
+    ];
+    $form['token_endpoint_wa'] = [
+      '#title' => $this->t('Token endpoint'),
       '#type' => 'textfield',
       '#default_value' => $this->configuration['token_endpoint_wa'],
-    );
-    $form['userinfo_endpoint_wa'] = array(
-      '#title' => t('UserInfo endpoint'),
+    ];
+    $form['userinfo_endpoint_wa'] = [
+      '#title' => $this->t('UserInfo endpoint'),
       '#type' => 'textfield',
       '#default_value' => $this->configuration['userinfo_endpoint_wa'],
-    );
-    $form['userinfo_graph_api_wa'] = array(
-      '#title' => t('Use Graph API for user info'),
+    ];
+    $form['userinfo_graph_api_wa'] = [
+      '#title' => $this->t('Use Graph API for user info'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->configuration['userinfo_graph_api_wa']) ? $this->configuration['userinfo_graph_api_wa'] : '',
-      '#description' => t('This option will omit the Userinfo endpoint and will use the Graph API ro retrieve the userinfo.'),
+      '#description' => $this->t('This option will omit the Userinfo endpoint and will use the Graph API ro retrieve the userinfo.'),
     );
-    $form['userinfo_graph_api_use_other_mails'] = array(
-      '#title' => t('Use Graph API otherMails property for email address'),
+    $form['userinfo_graph_api_use_other_mails'] = [
+      '#title' => $this->t('Use Graph API otherMails property for email address'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->configuration['userinfo_graph_api_use_other_mails']) ? $this->configuration['userinfo_graph_api_use_other_mails'] : '',
-      '#description' => t('Find the first occurrence of an email address in the Graph otherMails property and use this as email address.'),
-    );
-    $form['userinfo_update_email'] = array(
-      '#title' => t('Update email address in user profile'),
+      '#description' => $this->t('Find the first occurrence of an email address in the Graph otherMails property and use this as email address.'),
+    ];
+    $form['userinfo_update_email'] = [
+      '#title' => $this->t('Update email address in user profile'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->configuration['userinfo_update_email']) ? $this->configuration['userinfo_update_email'] : '',
-      '#description' => t('If email address has been changed for existing user, save the new value to the user profile.'),
-    );
-    $form['hide_email_address_warning'] = array(
-      '#title' => t('Hide missing email address warning'),
+      '#description' => $this->t('If email address has been changed for existing user, save the new value to the user profile.'),
+    ];
+    $form['hide_email_address_warning'] = [
+      '#title' => $this->t('Hide missing email address warning'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->configuration['hide_email_address_warning']) ? $this->configuration['hide_email_address_warning'] : '',
-      '#description' => t('By default, when email address is not found, a message will appear on the screen. This option hides that message (as it might be confusing for end users).'),
-    );
+      '#description' => $this->t('By default, when email address is not found, a message will appear on the screen. This option hides that message (as it might be confusing for end users).'),
+    ];
 
     return $form;
   }
@@ -73,11 +72,11 @@ class WindowsAad extends OpenIDConnectClientBase {
    * Overrides OpenIDConnectClientBase::getEndpoints().
    */
   public function getEndpoints() {
-    return array(
+    return [
       'authorization' => $this->configuration['authorization_endpoint_wa'],
       'token' => $this->configuration['token_endpoint_wa'],
       'userinfo' => $this->configuration['userinfo_endpoint_wa'],
-    );
+    ];
   }
   
   /**
@@ -120,20 +119,20 @@ class WindowsAad extends OpenIDConnectClientBase {
       $response_data = json_decode((string) $response->getBody(), TRUE);
 
       // Expected result.
-      $tokens = array(
+      $tokens = [
         'id_token' => $response_data['id_token'],
         'access_token' => $response_data['access_token'],
-      );
+      ];
       if (array_key_exists('expires_in', $response_data)) {
         $tokens['expire'] = REQUEST_TIME + $response_data['expires_in'];
       }
       return $tokens;
     }
     catch (RequestException $e) {
-      $variables = array(
+      $variables = [
         '@message' => 'Could not retrieve tokens',
         '@error_message' => $e->getMessage(),
-      );
+      ];
       $this->loggerFactory->get('openid_connect_windows_aad')
         ->error('@message. Details: @error_message', $variables);
       return FALSE;
@@ -159,6 +158,7 @@ class WindowsAad extends OpenIDConnectClientBase {
    *   A result array or false.
    */
   public function retrieveUserInfo($access_token) {
+
     // Determine if we use Graph API or default O365 Userinfo as this will
     // affect the data we collect and use in the Userinfo array.
     switch ($this->configuration['userinfo_graph_api_wa']) {
@@ -178,7 +178,7 @@ class WindowsAad extends OpenIDConnectClientBase {
     if ($this->configuration['userinfo_update_email'] == 1) {
       $user = user_load_by_name($userinfo['name']);
       if ($user && ($user->mail <> $userinfo['email'])) {
-        $edit = array('mail' => $userinfo['email']);
+        $edit = ['mail' => $userinfo['email']];
         user_save($user, $edit);
       }
     }
@@ -187,20 +187,20 @@ class WindowsAad extends OpenIDConnectClientBase {
   }
 
  /**
-   * Helper function to do the call to the endpoint and build userinfo array.
-   *
-   * @param string $access_token
-   *   The access token.
-   * @param string $url
-   *   The endpoint we want to send the request to.
-   * @param string $upn
-   *   The name of the property that holds the Azure username.
-   * @param string $name
-   *   The name of the property we want to map to Drupal username.
-   *
-   * @return array
-   *   The userinfo array or FALSE.
-   */
+  * Helper function to do the call to the endpoint and build userinfo array.
+  *
+  * @param string $access_token
+  *   The access token.
+  * @param string $url
+  *   The endpoint we want to send the request to.
+  * @param string $upn
+  *   The name of the property that holds the Azure username.
+  * @param string $name
+  *   The name of the property we want to map to Drupal username.
+  *
+  * @return array
+  *   The userinfo array or FALSE.
+  */
   private function buildUserinfo($access_token, $url, $upn, $name) {
     // Perform the request.
     $options = [
@@ -236,11 +236,10 @@ class WindowsAad extends OpenIDConnectClientBase {
             drupal_set_message(t('Email address not found in UserInfo. Used username instead, please check this in your profile.'), 'warning');
           }
           // Write watchdog warning.
-          $message = 'Email address of user @user not found in UserInfo. Used username instead, please check.';
           $variables = ['@user' => $profile_data[$upn]];
 
           $this->loggerFactory->get('openid_connect_windows_aad')
-          ->warning('Email address of user @user not found in UserInfo. Used username instead, please check.', $variables);
+            ->warning('Email address of user @user not found in UserInfo. Used username instead, please check.', $variables);
 
           $profile_data['email'] = $profile_data[$upn];
         }
@@ -248,13 +247,14 @@ class WindowsAad extends OpenIDConnectClientBase {
       return $profile_data;
     }
     catch (RequestException $e) {
-      $variables = array(
+      $variables = [
         '@message' => 'Could not retrieve user profile information',
         '@error_message' => $e->getMessage(),
-      );
+      ];
       $this->loggerFactory->get('openid_connect_windows_aad')
         ->error('@message. Details: @error_message', $variables);
       return FALSE;
     }
   }
+
 }

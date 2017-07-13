@@ -4,7 +4,7 @@ description: A CTools plugin that adds a Windows Azure AD client to OpenID Conne
 package: Other
 
 dependencies:
-  - openid_connect
+  - drupal: openid_connect
   
 type: module
 core: 8.x
