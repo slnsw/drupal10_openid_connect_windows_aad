@@ -177,21 +177,21 @@ class WindowsAad extends OpenIDConnectClientBase {
     return $userinfo;
   }
 
- /**
-  * Helper function to do the call to the endpoint and build userinfo array.
-  *
-  * @param string $access_token
-  *   The access token.
-  * @param string $url
-  *   The endpoint we want to send the request to.
-  * @param string $upn
-  *   The name of the property that holds the Azure username.
-  * @param string $name
-  *   The name of the property we want to map to Drupal username.
-  *
-  * @return array
-  *   The userinfo array or FALSE.
-  */
+  /**
+   * Helper function to do the call to the endpoint and build userinfo array.
+   *
+   * @param string $access_token
+   *   The access token.
+   * @param string $url
+   *   The endpoint we want to send the request to.
+   * @param string $upn
+   *   The name of the property that holds the Azure username.
+   * @param string $name
+   *   The name of the property we want to map to Drupal username.
+   *
+   * @return array
+   *   The userinfo array or FALSE.
+   */
   private function buildUserinfo($access_token, $url, $upn, $name) {
     // Perform the request.
     $options = [
