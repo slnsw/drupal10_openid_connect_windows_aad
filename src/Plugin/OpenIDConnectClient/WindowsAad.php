@@ -45,7 +45,7 @@ class WindowsAad extends OpenIDConnectClientBase {
       '#type' => 'checkbox',
       '#default_value' => !empty($this->configuration['userinfo_graph_api_wa']) ? $this->configuration['userinfo_graph_api_wa'] : '',
       '#description' => $this->t('This option will omit the Userinfo endpoint and will use the Graph API ro retrieve the userinfo.'),
-    );
+    ];
     $form['userinfo_graph_api_use_other_mails'] = [
       '#title' => $this->t('Use Graph API otherMails property for email address'),
       '#type' => 'checkbox',
@@ -78,7 +78,7 @@ class WindowsAad extends OpenIDConnectClientBase {
       'userinfo' => $this->configuration['userinfo_endpoint_wa'],
     ];
   }
-  
+
   /**
    * Implements OpenIDConnectClientInterface::retrieveIDToken().
    *
@@ -92,7 +92,7 @@ class WindowsAad extends OpenIDConnectClientBase {
     // Exchange `code` for access token and ID token.
     $redirect_uri = Url::fromRoute(
       'openid_connect.redirect_controller_redirect',
-      array('client_name' => $this->pluginId), array('absolute' => TRUE)
+      ['client_name' => $this->pluginId], ['absolute' => TRUE]
     )->toString();
     $endpoints = $this->getEndpoints();
 
@@ -138,7 +138,7 @@ class WindowsAad extends OpenIDConnectClientBase {
       return FALSE;
     }
   }
-  
+
   /**
    * Implements OpenIDConnectClientInterface::retrieveUserInfo().
    *
@@ -157,6 +157,7 @@ class WindowsAad extends OpenIDConnectClientBase {
    * @return array|bool
    *   A result array or false.
    */
+
   public function retrieveUserInfo($access_token) {
 
     // Determine if we use Graph API or default O365 Userinfo as this will
