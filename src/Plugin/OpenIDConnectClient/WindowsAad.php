@@ -22,6 +22,15 @@ class WindowsAad extends OpenIDConnectClientBase {
 
   /**
    * Overrides OpenIDConnectClientBase::settingsForm().
+   *
+   * @param array $form
+   *   Windows AAD form array containing form elements.
+   *
+   * @param FormStateInterface $form_state
+   *   Submitted form values.
+   *
+   * @return array
+   *   Renderable form array with form elements.
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
@@ -70,6 +79,10 @@ class WindowsAad extends OpenIDConnectClientBase {
 
   /**
    * Overrides OpenIDConnectClientBase::getEndpoints().
+   *
+   * @return array
+   *  Endpoint details with authorization endpoints, user access token and
+   *  userinfo object.
    */
   public function getEndpoints() {
     return [
