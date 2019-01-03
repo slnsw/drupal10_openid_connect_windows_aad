@@ -3,6 +3,7 @@
 namespace Drupal\openid_connect_windows_aad\Plugin\OpenIDConnectClient;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\openid_connect\Plugin\OpenIDConnectClientBase;
 use Drupal\Core\Url;
 use GuzzleHttp\Exception\RequestException;
@@ -103,9 +104,17 @@ class WindowsAad extends OpenIDConnectClientBase {
    */
   public function retrieveTokens($authorization_code) {
     // Exchange `code` for access token and ID token.
+    $language_none = \Drupal::languageManager()
+      ->getLanguage(LanguageInterface::LANGCODE_NOT_APPLICABLE);
     $redirect_uri = Url::fromRoute(
       'openid_connect.redirect_controller_redirect',
-      ['client_name' => $this->pluginId], ['absolute' => TRUE]
+      [
+        'client_name' => $this->pluginId,
+      ],
+      [
+        'absolute' => TRUE,
+        'language' => $language_none,
+      ]
     )->toString();
     $endpoints = $this->getEndpoints();
 
