@@ -146,7 +146,7 @@ class WindowsAad extends OpenIDConnectClientBase {
         'access_token' => $response_data['access_token'],
       ];
       if (array_key_exists('expires_in', $response_data)) {
-        $tokens['expire'] = REQUEST_TIME + $response_data['expires_in'];
+        $tokens['expire'] = \Drupal::time()->getRequestTime() + $response_data['expires_in'];
       }
       return $tokens;
     }
@@ -248,7 +248,7 @@ class WindowsAad extends OpenIDConnectClientBase {
         else {
           // Show message to user.
           if ($this->configuration['hide_email_address_warning'] <> 1) {
-            drupal_set_message(t('Email address not found in UserInfo. Used username instead, please check this in your profile.'), 'warning');
+            \Drupal::messenger()->addWarning(t('Email address not found in UserInfo. Used username instead, please check this in your profile.'));
           }
           // Write watchdog warning.
           $variables = ['@user' => $profile_data[$upn]];
