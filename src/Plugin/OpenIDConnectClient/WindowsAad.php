@@ -26,8 +26,7 @@ class WindowsAad extends OpenIDConnectClientBase {
    *
    * @param array $form
    *   Windows AAD form array containing form elements.
-   *
-   * @param FormStateInterface $form_state
+   * @param Drupal\Core\Form\FormStateInterface $form_state
    *   Submitted form values.
    *
    * @return array
@@ -82,8 +81,8 @@ class WindowsAad extends OpenIDConnectClientBase {
    * Overrides OpenIDConnectClientBase::getEndpoints().
    *
    * @return array
-   *  Endpoint details with authorization endpoints, user access token and
-   *  userinfo object.
+   *   Endpoint details with authorization endpoints, user access token and
+   *   userinfo object.
    */
   public function getEndpoints() {
     return [
@@ -235,7 +234,8 @@ class WindowsAad extends OpenIDConnectClientBase {
       $profile_data = json_decode($response_data, TRUE);
       $profile_data['name'] = $profile_data[$name];
 
-      if (!isset($profile_data['email'])) {
+      // Azure provides 'mail' for userinfo vs email.
+      if (!isset($profile_data['mail'])) {
         // See if we have the Graph otherMails property and use it if available,
         // if not, add the principal name as email instead, so Drupal still will
         // create the user anyway.
@@ -259,6 +259,11 @@ class WindowsAad extends OpenIDConnectClientBase {
           $profile_data['email'] = $profile_data[$upn];
         }
       }
+      else {
+        // OpenID Connect module expects the 'email' token for userinfo.
+        $profile_data['email'] = $profile_data['mail'];
+      }
+
       return $profile_data;
     }
     catch (RequestException $e) {
