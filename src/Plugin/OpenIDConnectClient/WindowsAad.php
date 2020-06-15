@@ -44,22 +44,79 @@ class WindowsAad extends OpenIDConnectClientBase {
       '#type' => 'textfield',
       '#default_value' => $this->configuration['token_endpoint_wa'],
     ];
-    $form['userinfo_endpoint_wa'] = [
-      '#title' => $this->t('UserInfo endpoint'),
-      '#type' => 'textfield',
-      '#default_value' => $this->configuration['userinfo_endpoint_wa'],
+    $form['map_ad_groups_to_roles'] = [
+      '#title' => $this->t('Map user\'s AD groups to Drupal roles'),
+      '#type' => 'checkbox',
+      '#default_value' => !empty($this->configuration['map_ad_groups_to_roles']) ? $this->configuration['map_ad_groups_to_roles'] : '',
+      '#description' => $this->t('Enable this to configure Drupal user role assignment based on AD group membership.'),
+    ];
+    // AD group mapping configuration field set.
+    $form['group_mapping'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('AD group mapping options'),
+      '#states' => [
+        'invisible' => [
+          ':input[name="clients[windows_aad][settings][map_ad_groups_to_roles]"]' => ['checked' => FALSE],
+        ],
+      ],
+    ];
+    $form['group_mapping']['method'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Method for mapping AD groups to roles'),
+      '#options' => [
+        0 => $this->t('Automatic (AD group names or ids identically match Drupal role names)'),
+        1 => $this->t('Manual (Specify which AD groups map to which Drupal roles)'),
+      ],
+      '#default_value' => !empty($this->configuration['group_mapping']['method']) ? $this->configuration['group_mapping']['method'] : 0,
+      '#description' => $this->t('Note: For name mapping to function the Azure AD Graph or Windows Graph APIs must be selected as a User endpoint. Otherwise only mapping based on Group Object IDs can be used.'),
+    ];
+    $form['group_mapping']['mappings'] = [
+      '#title' => $this->t('Manual mappings'),
+      '#type' => 'textarea',
+      '#default_value' => $this->configuration['group_mapping']['mappings'],
+      '#description' => $this->t('Add one role|group(s) mapping per line. Role and Group should be separated by "|". Multiple groups can be mapped to a single role on the same line using ";" to separate the groups. Ideally you should use the group id since it is immutable, but the title (displayName) may also be used.'),
+      '#states' => [
+        'invisible' => [
+          ':input[name="clients[windows_aad][settings][group_mapping][method]"]' => ['value' => 0],
+        ],
+      ],
+    ];
+    $form['group_mapping']['strict'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Only allow users to have roles that map to an AD group they are a member of.'),
+      '#default_value' => !empty($this->configuration['group_mapping']['strict']) ? $this->configuration['group_mapping']['strict'] : '',
+      '#description' => $this->t('Removes roles from a Drupal user account that do not map to AD groups the user is a member of. Also, with this enabled you can not grant unmapped roles to a user through the usual Drupal user/role interface such as editing a user account. Note: Only affects users with connected AD accounts.'),
     ];
     $form['userinfo_graph_api_wa'] = [
-      '#title' => $this->t('Use Graph API for user info'),
-      '#type' => 'checkbox',
-      '#default_value' => !empty($this->configuration['userinfo_graph_api_wa']) ? $this->configuration['userinfo_graph_api_wa'] : '',
-      '#description' => $this->t('This option will omit the Userinfo endpoint and will use the Graph API ro retrieve the userinfo.'),
+      '#title' => $this->t('User info endpoint configuration'),
+      '#type' => 'radios',
+      '#default_value' => !empty($this->configuration['userinfo_graph_api_wa']) ? $this->configuration['userinfo_graph_api_wa'] : 0,
+      '#options' => [
+        0 => $this->t('Alternate or no user endpoint'),
+        1 => $this->t('Azure AD Graph API (v1.6)'),
+        2 => $this->t('Windows Graph API (v1.0)')],
+      '#description' => $this->t('Most user/group info can be returned in the access token response through proper claims/permissions configuration for your app registration within Azure AD. If this is the case for your setup then you can choose "Alternate or no user endpoint" and leave blank the dependent "Alternate userinfo endpoint" text box. Otherwise you can choose to use the Azure AD graph API or the Windows Graph API (recommended) to retrieve user and/or graph info.'),
+    ];
+    $form['userinfo_endpoint_wa'] = [
+      '#title' => $this->t('Alternate UserInfo endpoint'),
+      '#type' => 'textfield',
+      '#default_value' => $this->configuration['userinfo_endpoint_wa'],
+      '#states' => [
+        'visible' => [
+          ':input[name="clients[windows_aad][settings][userinfo_graph_api_wa]"]' => ['value' => 0],
+        ],
+      ],
     ];
     $form['userinfo_graph_api_use_other_mails'] = [
       '#title' => $this->t('Use Graph API otherMails property for email address'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->configuration['userinfo_graph_api_use_other_mails']) ? $this->configuration['userinfo_graph_api_use_other_mails'] : '',
       '#description' => $this->t('Find the first occurrence of an email address in the Graph otherMails property and use this as email address.'),
+      '#states' => [
+        'visible' => [
+          ':input[name="clients[windows_aad][settings][userinfo_graph_api_wa]"]' => ['value' => 1],
+        ],
+      ],
     ];
     $form['userinfo_update_email'] = [
       '#title' => $this->t('Update email address in user profile'),
@@ -127,9 +184,15 @@ class WindowsAad extends OpenIDConnectClientBase {
       ],
     ];
 
-    // Add Graph API as resource if option is set.
-    if ($this->configuration['userinfo_graph_api_wa'] == 1) {
-      $request_options['form_params']['resource'] = 'https://graph.windows.net';
+    // Add a Graph API as resource if an option is selected.
+    switch ($this->configuration['userinfo_graph_api_wa']) {
+      case 1:
+        $request_options['form_params']['resource'] = 'https://graph.windows.net';
+        break;
+
+      case 2:
+        $request_options['form_params']['resource'] = 'https://graph.microsoft.com';
+        break;
     }
 
     /* @var \GuzzleHttp\ClientInterface $client */
@@ -178,16 +241,31 @@ class WindowsAad extends OpenIDConnectClientBase {
         $userinfo = $this->buildUserinfo($access_token, 'https://graph.windows.net/me?api-version=1.6', 'userPrincipalName', 'displayName');
         break;
 
+      case 2:
+        $userinfo = $this->buildUserinfo($access_token, 'https://graph.microsoft.com/v1.0/me', 'userPrincipalName', 'displayName');
+        break;
+
       default:
         $endpoints = $this->getEndpoints();
-        $userinfo = $this->buildUserinfo($access_token, $endpoints['userinfo'], 'upn', 'name');
+        if ($endpoints['userinfo']) {
+          $userinfo = $this->buildUserinfo($access_token, $endpoints['userinfo'], 'upn', 'name');
+        }
+        else {
+          $userinfo = array();
+        }
         break;
+    }
+
+    // If AD group to Drupal role mapping has been enabled then attach group
+    // data from a graph API if configured to do so.
+    if ($this->configuration['map_ad_groups_to_roles']) {
+      $userinfo['groups'] = $this->retrieveGroupInfo($access_token);
     }
 
     // Check to see if we have changed email data, O365_connect doesn't
     // give us the possibility to add a mapping for it, so we do the change
     // now, first checking if this is wanted by checking the setting for it.
-    if ($this->configuration['userinfo_update_email'] == 1) {
+    if ($userinfo && $this->configuration['userinfo_update_email'] == 1) {
       /** @var \Drupal\user\UserInterface $user */
       $user = user_load_by_name($userinfo['name']);
 
@@ -213,9 +291,11 @@ class WindowsAad extends OpenIDConnectClientBase {
    *   The name of the property we want to map to Drupal username.
    *
    * @return array
-   *   The userinfo array or FALSE.
+   *   The userinfo array. Empty array if unsuccessful.
    */
   private function buildUserinfo($access_token, $url, $upn, $name) {
+    $profile_data = [];
+
     // Perform the request.
     $options = [
       'method' => 'GET',
@@ -264,17 +344,72 @@ class WindowsAad extends OpenIDConnectClientBase {
         $profile_data['email'] = $profile_data['mail'];
       }
 
-      return $profile_data;
     }
     catch (RequestException $e) {
       $variables = [
-        '@message' => 'Could not retrieve user profile information',
         '@error_message' => $e->getMessage(),
       ];
       $this->loggerFactory->get('openid_connect_windows_aad')
-        ->error('@message. Details: @error_message', $variables);
-      return FALSE;
+        ->error('Could not retrieve user profile information. Details: @error_message', $variables);
     }
+    return $profile_data;
   }
 
+  /**
+   * Calls a graph api to retrieve teh user's group membership information.
+   *
+   * @param string $access_token
+   *   An access token string.
+   *
+   * @return array
+   *   An array of group informaion.
+   */
+  protected function retrieveGroupInfo($access_token) {
+    // By default or if an error occurs return empty group information.
+    $group_data = [];
+
+    switch ($this->configuration['userinfo_graph_api_wa']) {
+      case 1:
+        $uri = 'https://graph.windows.net/me/memberOf?api-version=1.6';
+        break;
+
+      case 2:
+        $uri = 'https://graph.microsoft.com/v1.0/me/memberOf';
+        break;
+
+      default:
+        $uri = false;
+        break;
+    }
+
+    if ($uri) {
+      // Perform the request.
+      $options = [
+        'method' => 'GET',
+        'headers' => [
+          'Content-Type' => 'application/json',
+          'Authorization' => 'Bearer ' . $access_token,
+        ],
+      ];
+      $client = $this->httpClient;
+
+      try {
+        $response = $client->get($uri, $options);
+        $response_data = (string) $response->getBody();
+
+        // Group Information.
+        $group_data = json_decode($response_data, TRUE);
+      }
+      catch (RequestException $e) {
+        $variables = [
+          '@api' => $uri,
+          '@error_message' => $e->getMessage(),
+        ];
+        $this->loggerFactory->get('openid_connect_windows_aad')
+          ->error('Failed to retrieve AD group information from graph api (@api). Details: @error_message', $variables);
+      }
+    }
+    // Return group information or an empty array.
+    return $group_data;
+  }
 }
