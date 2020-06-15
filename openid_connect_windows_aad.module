@@ -8,6 +8,42 @@
 use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
 use Drupal\user\RoleInterface;
+use Drupal\Form\FormStateInterface;
+
+/**
+ * Implements hook_admin_settings_alter().
+ */
+function openid_connect_windows_aad_form_openid_connect_admin_settings_alter(&$form, FormStateInterface $form_state, $form_id) {
+  array_unshift($form['#submit'], '_openid_connect_windows_aad_form_submit_refresh_routes');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function _openid_connect_windows_aad_form_submit_refresh_routes(&$form, FormStateInterface $form_state) {
+  $assume_disabled = FALSE;
+  try {
+    $configuration = \Drupal::config('openid_connect.settings.windows_aad');
+    $settings = $configuration->get('settings');
+    $aad_enabled = (bool) $configuration->get('enabled');
+    $sso_enabled = (isset($settings['enable_single_sign_out']) && $settings['enable_single_sign_out']);
+  }
+  catch (Exception $exception) {
+    // Not likely to happen but assume windows_aad is not enabled if it does.
+    $assume_disabled = TRUE;
+  }
+
+  // Get clients' enabled status.
+  $aad_checked = (bool) $form_state->getValue(array('clients_enabled', 'windows_aad'));
+  $sso_checked = (bool) $form_state->getValue(array('clients', 'windows_aad', 'settings', 'enable_single_sign_out'));
+
+  // Rebuild routes since we may override the user.logout route for single
+  // sign off.
+  if ((!$assume_disabled && ($aad_enabled !== $aad_checked || $sso_enabled !== $sso_checked)) || ($assume_disabled && ((isset($aad_enabled) && $aad_enabled !== $aad_checked) || $aad_checked))) {
+    \Drupal::logger('openid_connect_windows_aad')->debug('rebuild routes');
+    \Drupal::service('router.builder')->setRebuildNeeded();
+  }
+}
 
 /**
  * Implements hook_openid_connect_userinfo_save().

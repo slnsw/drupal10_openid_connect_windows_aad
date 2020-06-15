@@ -34,6 +34,12 @@ class WindowsAad extends OpenIDConnectClientBase {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
+    $form['enable_single_sign_out'] = [
+      '#title' => $this->t('Enable Single Sign Out'),
+      '#type' => 'checkbox',
+      '#default_value' => !empty($this->configuration['enable_single_sign_out']) ? $this->configuration['enable_single_sign_out'] : false,
+      '#description' => $this->t('Checking this option will enable Single Sign Out to occur so long as the logout url has been set to (http(s)://yoursite.com/openid-connect/windows_aad/signout) in your Azure AD registered app settings. If a user logs out of the Drupal app then they will be logged out of their SSO session elsewhere as well. Conversely if a user signs out of their SSO account elsewhere, such as Office 365, they will also be logged out of this app.'),
+    ];
     $form['authorization_endpoint_wa'] = [
       '#title' => $this->t('Authorization endpoint'),
       '#type' => 'textfield',

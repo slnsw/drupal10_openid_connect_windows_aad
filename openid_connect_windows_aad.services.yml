@@ -1,0 +1,5 @@
+services:
+  openid_connect_windows_aad.route_subscriber:
+    class: \Drupal\openid_connect_windows_aad\Routing\WindowsAadSSORouteSubscriber
+    tags:
+      - { name: event_subscriber }

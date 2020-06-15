@@ -1,0 +1,8 @@
+openid_connect_windows_aad.sso:
+  path: '/openid-connect/windows_aad/signout'
+  defaults:
+    _controller: '\Drupal\openid_connect_windows_aad\Controller\WindowsAadSSOController::signout'
+  requirements:
+    _access: 'TRUE'
+  options:
+    _maintenance_access: TRUE
