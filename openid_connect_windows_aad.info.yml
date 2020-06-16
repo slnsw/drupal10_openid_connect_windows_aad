@@ -1,10 +1,10 @@
-# OpenID Connect Windows AAD Module.
 name: OpenID Connect Windows Azure Active Directory
 description: This module adds a Windows Azure AD client to OpenID Connect.
 package: Other
 
 dependencies:
   - openid_connect:openid_connect
+  - key:key
   
 type: module
 core: 8.x
