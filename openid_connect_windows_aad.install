@@ -5,10 +5,51 @@
  * Remove Configuration of settings form.
  */
 
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\key\Entity\Key;
+
 /**
  * Implements hook_uninstall().
  */
 function openid_connect_windows_aad_uninstall() {
   // Remove configuration.
-  Drupal::configFactory()->getEditable('openid_connect.settings.windows_aad')->delete();
+  Drupal::configFactory()
+    ->getEditable('openid_connect.settings.windows_aad')
+    ->delete();
+}
+
+/**
+ * Transwarp the config to start using the key module.
+ */
+function openid_connect_windows_aad_update_8200() {
+  // Get our config, so we have the values we want to save in the new key store.
+  $config = \Drupal::configFactory()
+    ->getEditable('openid_connect.settings.windows_aad');
+  $settings = $config->get('settings');
+  $secret = $settings['client_secret'];
+
+  // Create some variables we need to create the key.
+  $label = 'OpenID Connect Windows AAD key';
+  $transliterated = \Drupal::transliteration()
+    ->transliterate($label, LanguageInterface::LANGCODE_DEFAULT, '_');
+  $transliterated = mb_strtolower($transliterated);
+  $machineName = preg_replace('@[^a-z0-9_.]+@', '_', $transliterated);
+
+  // Create the Key entity.
+  $key = Key::create([
+    'label' => $label,
+    'id' => $machineName,
+    'key_type' => 'authentication',
+    'key_provider_settings' => [
+      'key_value' => $secret,
+    ],
+  ]);
+
+  // Save the key.
+  $key->save();
+
+  // Save the new key as the client secret.
+  $settings['client_secret'] = $machineName;
+  $config->set('settings', $settings);
+  $config->save();
 }

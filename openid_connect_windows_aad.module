@@ -27,15 +27,22 @@ function _openid_connect_windows_aad_form_submit_refresh_routes(&$form, FormStat
     $settings = $configuration->get('settings');
     $aad_enabled = (bool) $configuration->get('enabled');
     $sso_enabled = (isset($settings['enable_single_sign_out']) && $settings['enable_single_sign_out']);
-  }
-  catch (Exception $exception) {
+  } catch (Exception $exception) {
     // Not likely to happen but assume windows_aad is not enabled if it does.
     $assume_disabled = TRUE;
   }
 
   // Get clients' enabled status.
-  $aad_checked = (bool) $form_state->getValue(array('clients_enabled', 'windows_aad'));
-  $sso_checked = (bool) $form_state->getValue(array('clients', 'windows_aad', 'settings', 'enable_single_sign_out'));
+  $aad_checked = (bool) $form_state->getValue([
+    'clients_enabled',
+    'windows_aad',
+  ]);
+  $sso_checked = (bool) $form_state->getValue([
+    'clients',
+    'windows_aad',
+    'settings',
+    'enable_single_sign_out',
+  ]);
 
   // Rebuild routes since we may override the user.logout route for single
   // sign off.
@@ -61,24 +68,22 @@ function openid_connect_windows_aad_openid_connect_userinfo_save(UserInterface $
     if (!$aad_enabled || !$settings['map_ad_groups_to_roles']) {
       return;
     }
-  }
-  catch (Exception $exception) {
+  } catch (Exception $exception) {
     // Not likely to happen but assume windows_aad is not enabled if it does.
     return;
   }
 
   $mapped_roles = $groups = [];
 
-  $user_roles = $account->getRoles(true);
+  $user_roles = $account->getRoles(TRUE);
   $all_roles = Role::loadMultiple();
-  unset($all_roles[RoleInterface::ANONYMOUS_ID]);
-  unset($all_roles[RoleInterface::AUTHENTICATED_ID]);
+  unset($all_roles[RoleInterface::ANONYMOUS_ID], $all_roles[RoleInterface::AUTHENTICATED_ID]);
 
   // Retreive a list of previously mapped roles.
   $UserData = \Drupal::service('user.data');
   $previous_mapped_roles = $UserData->get('openid_connect_windows_aad', $account->id(), 'mapped_roles');
   if (!isset($previous_mapped_roles)) {
-    $previous_mapped_roles = array();
+    $previous_mapped_roles = [];
   }
 
   // Groups found in the user_data returned from the auth request.
@@ -90,7 +95,7 @@ function openid_connect_windows_aad_openid_connect_userinfo_save(UserInterface $
 
   $group_id_key = 'id';
   // Depending on the API the group data has different keys.
-  if ($settings['userinfo_graph_api_wa'] == 1) {
+  if ($settings['userinfo_graph_api_wa'] === 1) {
     $group_id_key = 'objectId';
   }
   // Groups found in the userinfo returned from the user info request.
@@ -103,7 +108,7 @@ function openid_connect_windows_aad_openid_connect_userinfo_save(UserInterface $
     }
   }
 
-  switch($settings['group_mapping']['method']) {
+  switch ($settings['group_mapping']['method']) {
     // Manual mapping.
     case 1:
       if (!empty($settings['group_mapping']['mappings'])) {

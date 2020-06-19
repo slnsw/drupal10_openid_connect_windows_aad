@@ -4,7 +4,7 @@ package: Other
 
 dependencies:
   - openid_connect:openid_connect
+  - key:key
   
 type: module
-core: 8.x
-core_version_requirement: ^8 || ^9
+core_version_requirement: ^8.8.4 || ^9

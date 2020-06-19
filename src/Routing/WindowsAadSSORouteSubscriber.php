@@ -20,8 +20,7 @@ class WindowsAadSSORouteSubscriber extends RouteSubscriberBase {
         $configuration = \Drupal::config('openid_connect.settings.windows_aad');
         $settings = $configuration->get('settings');
         $enabled = $configuration->get('enabled');
-      }
-      catch (Exception $exception) {
+      } catch (Exception $exception) {
         // Not important to differentiate between Exceptions here, we just need
         // make it know that something is wrong and we won't enable SSOut.
         $configuration = FALSE;
@@ -29,7 +28,8 @@ class WindowsAadSSORouteSubscriber extends RouteSubscriberBase {
         // available, update this to use ExceptionLogger.
         // @see https://www.drupal.org/project/drupal/issues/2932518
         $variables = Error::decodeException($exception);
-        \Drupal::logger('openid_connect_windows_aad')->error('Failed to check OpenID Connect Windows AAD configuration so Single Sign Off will remain disabled. %type: @message in %function (line %line of %file).', $variables);
+        \Drupal::logger('openid_connect_windows_aad')
+          ->error('Failed to check OpenID Connect Windows AAD configuration so Single Sign Off will remain disabled. %type: @message in %function (line %line of %file).', $variables);
       }
       // Override the controller for the user.logout route in order to redirect
       // to the Windows Azure AD Single Sign out endpoint if SSOut is enabled.
@@ -38,4 +38,5 @@ class WindowsAadSSORouteSubscriber extends RouteSubscriberBase {
       }
     }
   }
+
 }

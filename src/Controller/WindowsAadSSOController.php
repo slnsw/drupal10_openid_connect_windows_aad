@@ -114,7 +114,9 @@ class WindowsAadSSOController extends ControllerBase {
     user_logout();
     if ($connected) {
       // Redirect back to the home page once signed out.
-      $redirect_uri = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+      $redirect_uri = Url::fromRoute('<front>', [], ['absolute' => TRUE])
+        ->toString(TRUE)
+        ->getGeneratedUrl();
       $query_parameters = [
         'post_logout_redirect_uri' => $redirect_uri,
       ];
@@ -130,4 +132,5 @@ class WindowsAadSSOController extends ControllerBase {
     // No SSOut so do the usual thing and redirect to the front page.
     return $this->redirect('<front>');
   }
+
 }

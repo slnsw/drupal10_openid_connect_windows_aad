@@ -4,9 +4,14 @@ namespace Drupal\openid_connect_windows_aad\Plugin\OpenIDConnectClient;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\key\KeyRepositoryInterface;
 use Drupal\openid_connect\Plugin\OpenIDConnectClientBase;
 use Drupal\Core\Url;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Generic OpenID Connect client.
@@ -22,11 +27,56 @@ use GuzzleHttp\Exception\RequestException;
 class WindowsAad extends OpenIDConnectClientBase {
 
   /**
+   * The key repository interface.
+   *
+   * @var \Drupal\key\KeyRepositoryInterface
+   */
+  protected $keyRepository;
+
+  /**
+   * The constructor.
+   *
+   * @param array $configuration
+   *   The plugin configuration.
+   * @param string $plugin_id
+   *   The plugin identifier.
+   * @param mixed $plugin_definition
+   *   The plugin definition.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
+   * @param \GuzzleHttp\ClientInterface $http_client
+   *   The http client.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
+   *   The logger factory.
+   * @param \Drupal\key\KeyRepositoryInterface $key_repository
+   *   The Key Repository interface.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RequestStack $request_stack, ClientInterface $http_client, LoggerChannelFactoryInterface $logger_factory, KeyRepositoryInterface $key_repository) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $request_stack, $http_client, $logger_factory);
+    $this->keyRepository = $key_repository;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('request_stack'),
+      $container->get('http_client'),
+      $container->get('logger.factory'),
+      $container->get('key.repository')
+    );
+  }
+
+  /**
    * Overrides OpenIDConnectClientBase::settingsForm().
    *
    * @param array $form
    *   Windows AAD form array containing form elements.
-   * @param Drupal\Core\Form\FormStateInterface $form_state
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   Submitted form values.
    *
    * @return array
@@ -37,7 +87,7 @@ class WindowsAad extends OpenIDConnectClientBase {
     $form['enable_single_sign_out'] = [
       '#title' => $this->t('Enable Single Sign Out'),
       '#type' => 'checkbox',
-      '#default_value' => !empty($this->configuration['enable_single_sign_out']) ? $this->configuration['enable_single_sign_out'] : false,
+      '#default_value' => !empty($this->configuration['enable_single_sign_out']) ? $this->configuration['enable_single_sign_out'] : FALSE,
       '#description' => $this->t('Checking this option will enable Single Sign Out to occur so long as the logout url has been set to (http(s)://yoursite.com/openid-connect/windows_aad/signout) in your Azure AD registered app settings. If a user logs out of the Drupal app then they will be logged out of their SSO session elsewhere as well. Conversely if a user signs out of their SSO account elsewhere, such as Office 365, they will also be logged out of this app.'),
     ];
     $form['authorization_endpoint_wa'] = [
@@ -79,7 +129,7 @@ class WindowsAad extends OpenIDConnectClientBase {
     $form['group_mapping']['mappings'] = [
       '#title' => $this->t('Manual mappings'),
       '#type' => 'textarea',
-      '#default_value' => $this->configuration['group_mapping']['mappings'],
+      '#default_value' => (isset($this->configuration['group_mapping']) && isset($this->configuration['group_mapping']['mappings'])) ? $this->configuration['group_mapping']['mappings'] : '',
       '#description' => $this->t('Add one role|group(s) mapping per line. Role and Group should be separated by "|". Multiple groups can be mapped to a single role on the same line using ";" to separate the groups. Ideally you should use the group id since it is immutable, but the title (displayName) may also be used.'),
       '#states' => [
         'invisible' => [
@@ -100,7 +150,8 @@ class WindowsAad extends OpenIDConnectClientBase {
       '#options' => [
         0 => $this->t('Alternate or no user endpoint'),
         1 => $this->t('Azure AD Graph API (v1.6)'),
-        2 => $this->t('Windows Graph API (v1.0)')],
+        2 => $this->t('Windows Graph API (v1.0)'),
+      ],
       '#description' => $this->t('Most user/group info can be returned in the access token response through proper claims/permissions configuration for your app registration within Azure AD. If this is the case for your setup then you can choose "Alternate or no user endpoint" and leave blank the dependent "Alternate userinfo endpoint" text box. Otherwise you can choose to use the Azure AD graph API or the Windows Graph API (recommended) to retrieve user and/or graph info.'),
     ];
     $form['userinfo_endpoint_wa'] = [
@@ -135,6 +186,12 @@ class WindowsAad extends OpenIDConnectClientBase {
       '#type' => 'checkbox',
       '#default_value' => !empty($this->configuration['hide_email_address_warning']) ? $this->configuration['hide_email_address_warning'] : '',
       '#description' => $this->t('By default, when email address is not found, a message will appear on the screen. This option hides that message (as it might be confusing for end users).'),
+    ];
+
+    $form['client_secret'] = [
+      '#title' => $this->t('Client secret'),
+      '#type' => 'key_select',
+      '#default_value' => $this->configuration['client_secret'],
     ];
 
     return $form;
@@ -180,11 +237,13 @@ class WindowsAad extends OpenIDConnectClientBase {
     )->toString();
     $endpoints = $this->getEndpoints();
 
+    $secret = $this->keyRepository->getKey($this->configuration['client_secret'])
+      ->getKeyValue();
     $request_options = [
       'form_params' => [
         'code' => $authorization_code,
         'client_id' => $this->configuration['client_id'],
-        'client_secret' => $this->configuration['client_secret'],
+        'client_secret' => $secret,
         'redirect_uri' => $redirect_uri,
         'grant_type' => 'authorization_code',
       ],
@@ -201,7 +260,6 @@ class WindowsAad extends OpenIDConnectClientBase {
         break;
     }
 
-    /* @var \GuzzleHttp\ClientInterface $client */
     $client = $this->httpClient;
 
     try {
@@ -214,11 +272,11 @@ class WindowsAad extends OpenIDConnectClientBase {
         'access_token' => $response_data['access_token'],
       ];
       if (array_key_exists('expires_in', $response_data)) {
-        $tokens['expire'] = \Drupal::time()->getRequestTime() + $response_data['expires_in'];
+        $tokens['expire'] = \Drupal::time()
+            ->getRequestTime() + $response_data['expires_in'];
       }
       return $tokens;
-    }
-    catch (RequestException $e) {
+    } catch (RequestException $e) {
       $variables = [
         '@message' => 'Could not retrieve tokens',
         '@error_message' => $e->getMessage(),
@@ -257,25 +315,25 @@ class WindowsAad extends OpenIDConnectClientBase {
           $userinfo = $this->buildUserinfo($access_token, $endpoints['userinfo'], 'upn', 'name');
         }
         else {
-          $userinfo = array();
+          $userinfo = [];
         }
         break;
     }
 
     // If AD group to Drupal role mapping has been enabled then attach group
     // data from a graph API if configured to do so.
-    if ($this->configuration['map_ad_groups_to_roles']) {
+    if (isset($this->configuration['map_ad_groups_to_roles'])) {
       $userinfo['groups'] = $this->retrieveGroupInfo($access_token);
     }
 
     // Check to see if we have changed email data, O365_connect doesn't
     // give us the possibility to add a mapping for it, so we do the change
     // now, first checking if this is wanted by checking the setting for it.
-    if ($userinfo && $this->configuration['userinfo_update_email'] == 1) {
+    if ($userinfo && $this->configuration['userinfo_update_email'] === 1) {
       /** @var \Drupal\user\UserInterface $user */
       $user = user_load_by_name($userinfo['name']);
 
-      if ($user && ($user->getEmail() != $userinfo['email'])) {
+      if ($user && ($user->getEmail() !== $userinfo['email'])) {
         $user->setEmail($userinfo['email']);
         $user->save();
       }
@@ -325,7 +383,7 @@ class WindowsAad extends OpenIDConnectClientBase {
         // See if we have the Graph otherMails property and use it if available,
         // if not, add the principal name as email instead, so Drupal still will
         // create the user anyway.
-        if ($this->configuration['userinfo_graph_api_use_other_mails'] == 1) {
+        if ($this->configuration['userinfo_graph_api_use_other_mails'] === 1) {
           if (!empty($profile_data['otherMails'])) {
             // Use first occurrence of otherMails attribute.
             $profile_data['email'] = current($profile_data['otherMails']);
@@ -333,8 +391,9 @@ class WindowsAad extends OpenIDConnectClientBase {
         }
         else {
           // Show message to user.
-          if ($this->configuration['hide_email_address_warning'] <> 1) {
-            \Drupal::messenger()->addWarning(t('Email address not found in UserInfo. Used username instead, please check this in your profile.'));
+          if ($this->configuration['hide_email_address_warning'] !== 1) {
+            \Drupal::messenger()
+              ->addWarning(t('Email address not found in UserInfo. Used username instead, please check this in your profile.'));
           }
           // Write watchdog warning.
           $variables = ['@user' => $profile_data[$upn]];
@@ -350,8 +409,7 @@ class WindowsAad extends OpenIDConnectClientBase {
         $profile_data['email'] = $profile_data['mail'];
       }
 
-    }
-    catch (RequestException $e) {
+    } catch (RequestException $e) {
       $variables = [
         '@error_message' => $e->getMessage(),
       ];
@@ -384,7 +442,7 @@ class WindowsAad extends OpenIDConnectClientBase {
         break;
 
       default:
-        $uri = false;
+        $uri = FALSE;
         break;
     }
 
@@ -405,8 +463,7 @@ class WindowsAad extends OpenIDConnectClientBase {
 
         // Group Information.
         $group_data = json_decode($response_data, TRUE);
-      }
-      catch (RequestException $e) {
+      } catch (RequestException $e) {
         $variables = [
           '@api' => $uri,
           '@error_message' => $e->getMessage(),
@@ -418,4 +475,5 @@ class WindowsAad extends OpenIDConnectClientBase {
     // Return group information or an empty array.
     return $group_data;
   }
+
 }
