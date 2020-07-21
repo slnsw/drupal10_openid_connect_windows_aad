@@ -270,6 +270,7 @@ class WindowsAad extends OpenIDConnectClientBase {
       $tokens = [
         'id_token' => $response_data['id_token'],
         'access_token' => $response_data['access_token'],
+        'refresh_token' => isset($response_data['refresh_token']) ? $response_data['refresh_token'] : FALSE,
       ];
       if (array_key_exists('expires_in', $response_data)) {
         $tokens['expire'] = \Drupal::time()
