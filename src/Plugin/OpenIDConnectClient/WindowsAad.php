@@ -323,7 +323,7 @@ class WindowsAad extends OpenIDConnectClientBase {
 
     // If AD group to Drupal role mapping has been enabled then attach group
     // data from a graph API if configured to do so.
-    if (isset($this->configuration['map_ad_groups_to_roles'])) {
+    if (!empty($this->configuration['map_ad_groups_to_roles'])) {
       $userinfo['groups'] = $this->retrieveGroupInfo($access_token);
     }
 
