@@ -327,19 +327,6 @@ class WindowsAad extends OpenIDConnectClientBase {
       $userinfo['groups'] = $this->retrieveGroupInfo($access_token);
     }
 
-    // Check to see if we have changed email data, O365_connect doesn't
-    // give us the possibility to add a mapping for it, so we do the change
-    // now, first checking if this is wanted by checking the setting for it.
-    if ($userinfo && $this->configuration['userinfo_update_email'] === 1) {
-      /** @var \Drupal\user\UserInterface $user */
-      $user = user_load_by_name($userinfo['name']);
-
-      if ($user && ($user->getEmail() !== $userinfo['email'])) {
-        $user->setEmail($userinfo['email']);
-        $user->save();
-      }
-    }
-
     return $userinfo;
   }
 
