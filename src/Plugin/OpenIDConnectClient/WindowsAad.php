@@ -148,7 +148,7 @@ class WindowsAad extends OpenIDConnectClientBase {
         1 => $this->t('Manual (Specify which AD groups map to which Drupal roles)'),
       ],
       '#default_value' => $this->configuration['group_mapping']['method'],
-      '#description' => $this->t('Note: For name mapping to function the Azure AD Graph or Windows Graph APIs must be selected as a User endpoint. Otherwise only mapping based on Group Object IDs can be used.'),
+      '#description' => $this->t('Note: For name mapping to function the Azure AD Graph or Microsoft Graph APIs must be selected as a User endpoint. Otherwise only mapping based on Group Object IDs can be used.'),
     ];
     $form['group_mapping']['mappings'] = [
       '#title' => $this->t('Manual mappings'),
@@ -174,9 +174,9 @@ class WindowsAad extends OpenIDConnectClientBase {
       '#options' => [
         0 => $this->t('Alternate or no user endpoint'),
         1 => $this->t('Azure AD Graph API (v1.6)'),
-        2 => $this->t('Windows Graph API (v1.0)'),
+        2 => $this->t('Microsoft Graph API (v1.0)'),
       ],
-      '#description' => $this->t('Most user/group info can be returned in the access token response through proper claims/permissions configuration for your app registration within Azure AD. If this is the case for your setup then you can choose "Alternate or no user endpoint" and leave blank the dependent "Alternate userinfo endpoint" text box. Otherwise you can choose to use the Azure AD graph API or the Windows Graph API (recommended) to retrieve user and/or graph info.'),
+      '#description' => $this->t('Most user/group info can be returned in the access token response through proper claims/permissions configuration for your app registration within Azure AD. If this is the case for your setup then you can choose "Alternate or no user endpoint" and leave blank the dependent "Alternate userinfo endpoint" text box. Otherwise you can choose to use the Azure AD graph API or the Microsoft Graph API (recommended) to retrieve user and/or graph info.'),
     ];
     $form['userinfo_endpoint_wa'] = [
       '#title' => $this->t('Alternate UserInfo endpoint'),
