@@ -1,26 +1,51 @@
-# Schema for the configuration files of the OpenID Connect module.
-openid_connect_windows_aad.settings.window_aad:
-  type: config_object
-  label: 'OpenID Connect Window Aad settings'
+# Schema for the configuration of the Microsoft Azure Active Directory client.
+openid_connect.client.plugin.windows_aad:
+  type: mapping
+  label: 'OpenID Connect Windows AAD settings'
   mapping:
-    enabled:
+    client_id:
+      type: string
+      label: 'Client ID'
+    client_secret:
+      type: string
+      label: 'Client secret'
+    authorization_endpoint_wa:
+      type: uri
+      label: 'Authorization endpoint'
+    token_endpoint_wa:
+      type: uri
+      label: 'Token endpoint'
+    userinfo_endpoint_wa:
+      type: uri
+      label: 'Userinfo endpoint'
+    enable_single_sign_out:
       type: boolean
-      label: 'Enable client'
-    settings:
+      label: 'Enable Single Sign Out'
+    map_ad_groups_to_roles:
+      type: boolean
+      label: 'Map user''s AD groups to Drupal roles'
+    group_mapping:
       type: mapping
+      label: 'AD group mapping options'
       mapping:
-        client_id:
+        method:
+          type: integer
+          label: 'Method for mapping AD groups to roles'
+        mappings:
           type: string
-          label: 'Client ID'
-        client_secret:
-          type: string
-          label: 'Client secret'
-        authorization_endpoint_wa:
-          type: string
-          label: 'Authorization endpoint'
-        token_endpoint_wa:
-          type: string
-          label: 'Token endpoint'
-        userinfo_endpoint_wa:
-          type: string
-          label: 'Userinfo endpoint'
+          label: 'Manual mappings'
+        strict:
+          type: boolean
+          label: 'Only allow users to have roles that map to an AD group they are a member of.'
+    userinfo_graph_api_wa:
+      type: integer
+      label: 'User info endpoint configuration'
+    userinfo_graph_api_use_other_mails:
+      type: boolean
+      label: 'Use Graph API otherMails property for email address'
+    userinfo_update_email:
+      type: boolean
+      label: 'Update email address in user profile'
+    hide_email_address_warning:
+      type: boolean
+      label: 'Hide missing email address warning'

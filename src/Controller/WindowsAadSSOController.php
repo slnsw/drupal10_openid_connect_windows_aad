@@ -3,13 +3,13 @@
 namespace Drupal\openid_connect_windows_aad\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\externalauth\AuthmapInterface;
 use Psr\Log\LoggerInterface;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Drupal\openid_connect\OpenIDConnectAuthmap;
 
 /**
  * Controller routines for Azure AD single sign out user routes.
@@ -24,8 +24,9 @@ class WindowsAadSSOController extends ControllerBase {
   protected $logger;
 
   /*
-   * @param \Drupal\openid_connect\OpenIDConnectAuthmap $authmap
-   *   The authmap storage.
+   * The authmap storage.
+   *
+   * @var \Drupal\externalauth\AuthmapInterface $authmap
    */
   protected $authmap;
 
@@ -34,8 +35,9 @@ class WindowsAadSSOController extends ControllerBase {
    *
    * @param \Psr\Log\LoggerInterface $logger
    *   A logger instance.
+   * @param \Drupal\externalauth\AuthmapInterface $authmap
    */
-  public function __construct(LoggerInterface $logger, OpenIDConnectAuthmap $authmap) {
+  public function __construct(LoggerInterface $logger, AuthmapInterface $authmap) {
     $this->logger = $logger;
     $this->authmap = $authmap;
   }
@@ -46,7 +48,7 @@ class WindowsAadSSOController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('logger.factory')->get('openid_connect_windows_aad'),
-      $container->get('openid_connect.authmap')
+      $container->get('externalauth.authmap')
     );
   }
 
@@ -60,14 +62,14 @@ class WindowsAadSSOController extends ControllerBase {
    *   Either a 200 or 403 response without any content.
    */
   public function signout() {
-    $configuration = $this->config('openid_connect.settings.windows_aad');
+    $configuration = $this->config('openid_connect.client.windows_aad');
     $settings = $configuration->get('settings');
-    $enabled = $configuration->get('enabled');
+    $enabled = $configuration->get('status');
     // Check that the windows_aad client is enabled and so is SSOut.
     if ($enabled && isset($settings['enable_single_sign_out']) && $settings['enable_single_sign_out']) {
       // Ensure the user has a connected account.
       $user = \Drupal::currentUser();
-      $connected_accounts = $this->authmap->getConnectedAccounts($user);
+      $connected_accounts = $this->authmap->getAll($user->id());
       $connected = ($connected_accounts && isset($connected_accounts['windows_aad']));
       $logged_in = $user->isAuthenticated();
       // Only log the user out if they are logged in and have a connected
@@ -98,16 +100,16 @@ class WindowsAadSSOController extends ControllerBase {
    */
   public function logout() {
     $connected = FALSE;
-    $configuration = $this->config('openid_connect.settings.windows_aad');
+    $configuration = $this->config('openid_connect.client.windows_aad');
     $settings = $configuration->get('settings');
     // Check that the windows_aad client is enabled and so is SSOut.
-    $enabled = (($configuration->get('enabled')) && isset($settings['enable_single_sign_out']) && $settings['enable_single_sign_out']);
+    $enabled = (($configuration->get('status')) && isset($settings['enable_single_sign_out']) && $settings['enable_single_sign_out']);
 
     // Check for a connected account before we log the Drupal user out.
     if ($enabled) {
       // Ensure the user has a connected account.
       $user = \Drupal::currentUser();
-      $connected_accounts = $this->authmap->getConnectedAccounts($user);
+      $connected_accounts = $this->authmap->getAll($user->id());
       $connected = ($connected_accounts && isset($connected_accounts['windows_aad']));
     }
 

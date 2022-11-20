@@ -11,5 +11,9 @@
   "support": {
     "issues": "https://www.drupal.org/project/issues/openid_connect_windows_aad",
     "source": "http://cgit.drupalcode.org/openid_connect_windows_aad"
+  },
+  "require": {
+    "drupal/key": "^1.0",
+    "drupal/openid_connect": "^2.0"
   }
 }
