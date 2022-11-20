@@ -257,7 +257,10 @@ class WindowsAad extends OpenIDConnectClientBase {
         break;
 
       case 2:
-        $request_options['form_params']['resource'] = 'https://graph.microsoft.com';
+        $v2 = str_contains($endpoints['token'], '/oauth2/v2.0/');
+        if (!$v2) {
+          $request_options['form_params']['resource'] = 'https://graph.microsoft.com';
+        }
         break;
     }
 
@@ -323,6 +326,16 @@ class WindowsAad extends OpenIDConnectClientBase {
     }
 
     return $userinfo;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function usesUserInfo(): bool {
+    return match ($this->configuration['userinfo_graph_api_wa']) {
+      1, 2 => TRUE,
+      default => !empty($this->getEndpoints()['userinfo']),
+    };
   }
 
   /**
