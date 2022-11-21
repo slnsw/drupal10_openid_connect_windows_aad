@@ -217,6 +217,15 @@ class WindowsAad extends OpenIDConnectClientBase {
       '#default_value' => $this->configuration['client_secret'],
     ];
 
+    $form['front_channel_logout_url'] = [
+      '#title' => $this->t('Front-channel logout URL'),
+      '#type' => 'item',
+      '#markup' => Url::fromRoute('openid_connect_windows_aad.sso', [], [
+        'absolute' => TRUE,
+        'language' => $this->languageManager->getLanguage(LanguageInterface::LANGCODE_NOT_APPLICABLE),
+      ])->toString(),
+    ];
+
     return $form;
   }
 
