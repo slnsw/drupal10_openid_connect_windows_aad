@@ -24,22 +24,12 @@ use Lcobucci\JWT\Token\UnsupportedHeaderFound;
  * Implements hook_openid_connect_userinfo_save().
  */
 function openid_connect_windows_aad_openid_connect_userinfo_save(UserInterface $account, array $context) {
-  if ($context['plugin_id'] !== 'windows_aad') {
+  $client = OpenIDConnectClientEntity::load($context['plugin_id']);
+  if (!($client->getPlugin() instanceof WindowsAad)) {
     return;
   }
 
-  try {
-    // Ensure windows_aad auth is enabled and configured for group mapping.
-    $configuration = \Drupal::config('openid_connect.client.windows_aad');
-    $settings = $configuration->get('settings');
-    $aad_enabled = (bool) $configuration->get('status');
-    if (!$aad_enabled) {
-      return;
-    }
-  } catch (Exception $exception) {
-    // Not likely to happen but assume windows_aad is not enabled if it does.
-    return;
-  }
+  $settings = $client->getPlugin()->getConfiguration();
 
   // Update user email address on login, if the setting is enabled.
   if ($settings['userinfo_update_email'] && !empty($context['user_data']['email']) && $context['user_data']['email'] !== $account->getEmail()) {
