@@ -1,56 +1,24 @@
 <?php
 
+declare(strict_types = 1);
+
 /**
  * @file
  * OpenID Connect Windows AAD module file.
  */
 
-use Drupal\user\Entity\Role;
-use Drupal\user\UserInterface;
-use Drupal\user\RoleInterface;
 use Drupal\Core\Form\FormState;
-
-/**
- * Implements hook_admin_settings_alter().
- */
-function openid_connect_windows_aad_form_openid_connect_admin_settings_alter(&$form, FormState $form_state, $form_id) {
-  array_unshift($form['#submit'], '_openid_connect_windows_aad_form_submit_refresh_routes');
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- */
-function _openid_connect_windows_aad_form_submit_refresh_routes(&$form, FormState $form_state) {
-  $assume_disabled = FALSE;
-  try {
-    $configuration = \Drupal::config('openid_connect.client.windows_aad');
-    $settings = $configuration->get('settings');
-    $aad_enabled = $configuration->get('status');
-    $sso_enabled = $settings['enable_single_sign_out'];
-  } catch (Exception $exception) {
-    // Not likely to happen but assume windows_aad is not enabled if it does.
-    $assume_disabled = TRUE;
-  }
-
-  // Get clients' enabled status.
-  $aad_checked = (bool) $form_state->getValue([
-    'clients_enabled',
-    'windows_aad',
-  ]);
-  $sso_checked = (bool) $form_state->getValue([
-    'clients',
-    'windows_aad',
-    'settings',
-    'enable_single_sign_out',
-  ]);
-
-  // Rebuild routes since we may override the user.logout route for single
-  // sign off.
-  if ((!$assume_disabled && ($aad_enabled !== $aad_checked || $sso_enabled !== $sso_checked)) || ($assume_disabled && ((isset($aad_enabled) && $aad_enabled !== $aad_checked) || $aad_checked))) {
-    \Drupal::logger('openid_connect_windows_aad')->debug('rebuild routes');
-    \Drupal::service('router.builder')->setRebuildNeeded();
-  }
-}
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\openid_connect\Entity\OpenIDConnectClientEntity;
+use Drupal\openid_connect_windows_aad\Plugin\OpenIDConnectClient\WindowsAad;
+use Drupal\user\Entity\Role;
+use Drupal\user\RoleInterface;
+use Drupal\user\UserInterface;
+use Lcobucci\JWT\Encoding\CannotDecodeContent;
+use Lcobucci\JWT\Encoding\JoseEncoder;
+use Lcobucci\JWT\Token\InvalidTokenStructure;
+use Lcobucci\JWT\Token\Parser;
+use Lcobucci\JWT\Token\UnsupportedHeaderFound;
 
 /**
  * Implements hook_openid_connect_userinfo_save().
@@ -224,4 +192,27 @@ function openid_connect_windows_aad_openid_connect_userinfo_save(UserInterface $
 
   }
 
+}
+
+/**
+ * Implements hook_openid_connect_redirect_logout_alter().
+ */
+function openid_connect_windows_aad_openid_connect_redirect_logout_alter(array &$response, array $context) : void {
+  $client = OpenIDConnectClientEntity::load($context['client']);
+  if ($client->getPlugin() instanceof WindowsAad && $response['response'] instanceof TrustedRedirectResponse) {
+    $idToken = \Drupal::service('openid_connect.session')->retrieveIdToken();
+    if (!$idToken) {
+      return;
+    }
+    $parser = new Parser(new JoseEncoder());
+    try {
+      $token = $parser->parse($idToken);
+      $loginHint = $token->claims()->get('login_hint');
+      if ($loginHint) {
+        $response['response']->setTrustedTargetUrl($response['response']->getTargetUrl() . '&logout_hint=' . $loginHint);
+      }
+    } catch (CannotDecodeContent | InvalidTokenStructure | UnsupportedHeaderFound $e) {
+      // ID Token is incorrect, don't add alter the redirect url.
+    }
+  }
 }

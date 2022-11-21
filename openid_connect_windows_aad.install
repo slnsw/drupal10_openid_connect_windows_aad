@@ -7,6 +7,7 @@
 
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\key\Entity\Key;
+use Drupal\openid_connect\Entity\OpenIDConnectClientEntity;
 
 /**
  * Implements hook_uninstall().
@@ -76,4 +77,24 @@ function openid_connect_windows_aad_update_9202() {
   $settings['client_secret'] = $machineName;
   $config->set('settings', $settings);
   $config->save();
+}
+
+/**
+ * Convert enable_single_sign_out to openid_connect end_session endpoint.
+ */
+function openid_connect_windows_aad_update_9205() {
+  $ids = \Drupal::entityQuery('openid_connect_client')
+    ->condition('plugin', 'windows_aad')
+    ->condition('settings.enable_single_sign_out', TRUE, '=')
+    ->execute();
+
+  foreach ($ids as $id) {
+    /** @var OpenIDConnectClientEntity $client */
+    $client = OpenIDConnectClientEntity::load($id);
+    $settings = $client->get('settings');
+    if (empty($settings['end_session_endpoint'])) {
+      $settings['end_session_endpoint'] = 'https://login.microsoftonline.com/common/oauth2/v2.0/logout';
+      $client->set('settings', $settings)->save();
+    }
+  }
 }

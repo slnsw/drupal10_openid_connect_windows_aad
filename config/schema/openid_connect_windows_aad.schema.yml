@@ -18,9 +18,6 @@ openid_connect.client.plugin.windows_aad:
     userinfo_endpoint_wa:
       type: uri
       label: 'Userinfo endpoint'
-    enable_single_sign_out:
-      type: boolean
-      label: 'Enable Single Sign Out'
     map_ad_groups_to_roles:
       type: boolean
       label: 'Map user''s AD groups to Drupal roles'
