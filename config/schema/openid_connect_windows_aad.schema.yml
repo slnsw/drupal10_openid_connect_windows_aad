@@ -46,3 +46,6 @@ openid_connect.client.plugin.windows_aad:
     hide_email_address_warning:
       type: boolean
       label: 'Hide missing email address warning'
+    subject_key:
+      type: string
+      label: 'Subject key'

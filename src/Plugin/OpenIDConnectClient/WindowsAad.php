@@ -86,21 +86,22 @@ class WindowsAad extends OpenIDConnectClientBase {
    */
   public function defaultConfiguration(): array {
     return [
-        'authorization_endpoint_wa' => '',
-        'token_endpoint_wa' => '',
-        'userinfo_endpoint_wa' => '',
-        'map_ad_groups_to_roles' => FALSE,
-        'group_mapping' => [
-          'method' => 0,
-          'mappings' => '',
-          'strict' => FALSE,
-        ],
-        'userinfo_graph_api_wa' => 0,
-        'userinfo_graph_api_use_other_mails' => FALSE,
-        'userinfo_update_email' => FALSE,
-        'hide_email_address_warning' => FALSE,
-        'end_session_endpoint' => ''
-      ] + parent::defaultConfiguration();
+      'authorization_endpoint_wa' => '',
+      'token_endpoint_wa' => '',
+      'userinfo_endpoint_wa' => '',
+      'map_ad_groups_to_roles' => FALSE,
+      'group_mapping' => [
+        'method' => 0,
+        'mappings' => '',
+        'strict' => FALSE,
+      ],
+      'userinfo_graph_api_wa' => 0,
+      'userinfo_graph_api_use_other_mails' => FALSE,
+      'userinfo_update_email' => FALSE,
+      'hide_email_address_warning' => FALSE,
+      'end_session_endpoint' => '',
+      'subject_key' => 'sub',
+    ] + parent::defaultConfiguration();
   }
 
   /**
@@ -217,6 +218,32 @@ class WindowsAad extends OpenIDConnectClientBase {
       '#default_value' => $this->configuration['client_secret'],
     ];
 
+    $form['subject_key'] = [
+      '#title' => t('Subject key'),
+      '#type' => 'select',
+      '#options' => ['sub' => 'sub', 'oid' => 'oid'],
+      '#default_value' => $this->configuration['subject_key'],
+      '#description' => t('Choose which immutable token parameter to use
+as the mapping between Azure AD accounts and Drupal users.<br/>
+<ul>
+    <li>"sub" is unique per user, but varies across AD application registrations.</li>
+    <li>"oid" is unique per user and common across all applications in the same tenant.</li>
+    <li>See <a href=":url">:url</a> for further details.</li>
+  </ul>
+  <p><strong>The "oid" option, requires a patch for the openid_connect module. See issue <a href=":issue_url">:issue_url</a> for more information.</strong></p>
+  <p>The default "sub" is sufficient in most cases. However, "oid" is useful if
+  you want to use AD auth tokens to request access to other services and verify
+  the user id. For example the Microsoft Graph API does not return the sub, but
+  will return the oid in its "id" parameter. Also to sync databases between
+  environments that use different app registrations, users will not map properly
+  if "sub" is used.</p>'
+  , [
+        ':url' => 'https://learn.microsoft.com/en-us/azure/active-directory/develop/access-tokens',
+        ':issue_url' => 'https://www.drupal.org/i/3298472'
+      ]),
+      '#required' => TRUE,
+    ];
+
     $form['front_channel_logout_url'] = [
       '#title' => $this->t('Front-channel logout URL'),
       '#type' => 'item',
@@ -227,6 +254,17 @@ class WindowsAad extends OpenIDConnectClientBase {
     ];
 
     return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getClientScopes(): ?array {
+    $scopes = parent::getClientScopes();
+    if ($this->configuration['subject_key'] === 'oid') {
+      $scopes[] = 'profile';
+    }
+    return array_unique($scopes);
   }
 
   /**

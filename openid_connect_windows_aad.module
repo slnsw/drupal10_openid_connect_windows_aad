@@ -206,3 +206,30 @@ function openid_connect_windows_aad_openid_connect_redirect_logout_alter(array &
     }
   }
 }
+
+/**
+ * Implements hook_openid_connect_userinfo_alter().
+ */
+function openid_connect_windows_aad_openid_connect_userinfo_alter(array &$userinfo, array &$context) {
+  $plugin = OpenIDConnectClientEntity::load($context['plugin_id']);
+  if ($plugin->getPlugin() instanceof WindowsAad) {
+    $originalSubs = [
+      'sub' => $context['user_data']['sub'],
+      'oid' => $context['user_data']['oid'] ?? NULL,
+    ];
+
+    $context['user_data']['original_subs'] = $originalSubs;
+    $userinfo['original_subs'] = $originalSubs;
+
+    $subjectKey = $plugin->getPlugin()->getConfiguration()['subject_key'];
+    if ($subjectKey === 'oid') {
+      if ($originalSubs['oid'] === NULL) {
+        throw new LogicException('Missing oid in context.');
+      }
+
+      // Map oid to sub.
+      $context['user_data']['sub'] = $originalSubs['oid'];
+      $userinfo['sub'] = $originalSubs['oid'];
+    }
+  }
+}
