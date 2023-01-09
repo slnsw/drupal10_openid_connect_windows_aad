@@ -12,9 +12,15 @@
     "issues": "https://www.drupal.org/project/issues/openid_connect_windows_aad",
     "source": "http://cgit.drupalcode.org/openid_connect_windows_aad"
   },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/slnsw/drupal10_openid_connect"
+    }
+  ],
   "require": {
     "drupal/key": "^1.0",
-    "drupal/openid_connect": "^2.0",
+    "drupal/openid_connect": "dev-10.x-2.x",
     "lcobucci/jwt": "^4.2.1"
   }
 }
